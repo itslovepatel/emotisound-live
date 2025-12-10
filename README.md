@@ -1,6 +1,4 @@
-Here's a clean, properly formatted, and ready-to-use `README.md` file based on your content (with fixed markdown syntax, working links, proper code blocks, and improved readability):
 
-```markdown
 # 🎵 EmotiSound - Music Emotion DNA Analyzer
 
 [![Hugging Face Spaces](https://img.shields.io/badge/🤗%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/lovepatel/emotisound-live)
