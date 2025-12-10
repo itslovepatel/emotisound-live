@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EmotiSound | Audio Upload</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background: #121212; color: #fff; font-family: 'Courier New', monospace; text-align: center; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .card { background: #1e1e1e; padding: 30px; border-radius: 15px; margin-top: 20px; box-shadow: 0 0 20px rgba(0,255,204,0.1); }
+        input[type="file"] { display: none; }
+        .custom-upload {
+            border: 2px dashed #00ffcc; padding: 20px; cursor: pointer; display: inline-block; width: 60%;
+            transition: 0.3s; color: #00ffcc;
+        }
+        .custom-upload:hover { background: rgba(0,255,204,0.1); }
+        button { padding: 15px 40px; background: #00ffcc; border: none; font-weight: bold; cursor: pointer; color: #000; margin-top: 20px; font-size: 16px; }
+        #colorBox { width: 100px; height: 100px; border-radius: 50%; margin: 20px auto; box-shadow: 0 0 30px currentColor; transition: all 1s; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; margin-top: 20px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 EmotiSound Analyzer</h1>
+        <p>Upload a song (.wav or .mp3) to extract its Emotion DNA</p>
+        
+        <div class="card">
+            <label class="custom-upload">
+                <input type="file" id="audioFile" accept=".wav,.mp3">
+                <span id="fileName">Click to Select Song</span>
+            </label>
+            <br>
+            <button onclick="uploadAndAnalyze()">ANALYZE AUDIO</button>
+            <p id="loading" style="display:none; color: #888;">🎧 Listening and extracting features...</p>
+        </div>
+
+        <div id="result" class="card" style="display:none;">
+            <h2 id="emotionTitle">Analysis Complete</h2>
+            <div id="colorBox"></div>
+            <div class="stats-grid" id="statsGrid"></div>
+            <div style="width: 300px; margin: 20px auto;">
+                <canvas id="dnaChart"></canvas>
+            </div>
+            <h3 style="color: #00ffcc;">Personality Match:</h3>
+            <ul id="personalityList" style="list-style: none; padding: 0;"></ul>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('audioFile').addEventListener('change', function(){
+            document.getElementById('fileName').innerText = this.files[0].name;
+        });
+
+        async function uploadAndAnalyze() {
+            const fileInput = document.getElementById('audioFile');
+            if(fileInput.files.length === 0) { alert("Please select a file!"); return; }
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/predict_file', {
+                    method: 'POST',
+                    body: formData
+                });
+                const dna = await response.json();
+                
+                if(dna.error) { alert(dna.error); return; }
+                displayResults(dna);
+                
+            } catch (err) {
+                alert("Error analyzing file.");
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function displayResults(dna) {
+            document.getElementById('result').style.display = 'block';
+            
+            document.getElementById('emotionTitle').innerText = dna.main_emotion;
+            document.getElementById('emotionTitle').style.color = dna.synesthesia_color;
+            const box = document.getElementById('colorBox');
+            box.style.backgroundColor = dna.synesthesia_color;
+            box.style.color = dna.synesthesia_color;
+
+            const statsDiv = document.getElementById('statsGrid');
+            statsDiv.innerHTML = '';
+            for (const [key, value] of Object.entries(dna.extracted_features)) {
+                statsDiv.innerHTML += `<div><strong>${key}:</strong> ${value}</div>`;
+            }
+
+            const list = document.getElementById('personalityList');
+            list.innerHTML = '';
+            dna.personality_match.forEach(trait => {
+                const li = document.createElement('li');
+                li.innerText = trait;
+                list.appendChild(li);
+            });
+
+            const ctx = document.getElementById('dnaChart').getContext('2d');
+            if(window.myChart) window.myChart.destroy();
+            
+            window.myChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Melancholy', 'Serenity', 'Turbulence', 'Euphoria'],
+                    datasets: [{
+                        label: 'Emotion DNA',
+                        data: dna.dna_sequence,
+                        backgroundColor: dna.synesthesia_color + '44',
+                        borderColor: dna.synesthesia_color,
+                        pointBackgroundColor: '#fff'
+                    }]
+                },
+                options: {
+                    scales: { r: { suggestMin: 0, suggestMax: 1, ticks: { display: false }, grid: { color: '#444' } } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
